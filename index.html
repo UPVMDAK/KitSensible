@@ -2,42 +2,73 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>AR Multi-Cartes</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { background: #000; overflow: hidden; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    a-scene {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+
+    canvas, .a-canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+
+    video#arjs-video {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
 
     .a-loader-title { display: none !important; }
 
-    canvas, a-scene, .a-canvas {
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    a-scene.a-scene--loaded canvas,
-    a-scene.a-scene--loaded .a-canvas {
-      opacity: 1;
-    }
-
     #debug {
-      position: fixed; top: 10px; left: 10px;
-      background: rgba(0,0,0,0.6); color: #0f0;
-      font-family: monospace; font-size: 13px;
-      padding: 8px 12px; border-radius: 6px;
-      z-index: 9999; pointer-events: none;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      z-index: 9999;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
+
 <div id="debug">Initialisation...</div>
+
 <a-scene
   embedded
   arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
   renderer="logarithmicDepthBuffer: true; antialias: false;"
   vr-mode-ui="enabled: false"
 >
-  <a-assets timeout="10000">
+  <a-assets timeout="15000">
     <!-- Carte 1 -->
     <video id="video1" src="montagne.mp4" preload="auto" loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
     <audio id="son1a" src="montagne-feuille.mp3" preload="auto" loop></audio>
@@ -103,10 +134,11 @@
     { markerId: "marker6", videoId: "video6", sonIds: ["son6a", "son6b"] },
   ];
 
-  // Débloque l'audio au premier touch
+  // Débloque l'audio au premier touch/click
   document.body.addEventListener("click", () => {
     cartes.forEach(c => {
-      document.getElementById(c.videoId).play().catch(() => {});
+      const v = document.getElementById(c.videoId);
+      v.play().catch(() => {});
       c.sonIds.forEach(id => {
         const s = document.getElementById(id);
         s.play().then(() => s.pause()).catch(() => {});
@@ -115,7 +147,20 @@
   }, { once: true });
 
   document.querySelector("a-scene").addEventListener("loaded", () => {
-    log("Pret — montre un marqueur");
+    log("Prêt — montre un marqueur");
+
+    // Force le redimensionnement de la vidéo caméra après init
+    setTimeout(() => {
+      const arVideo = document.querySelector("#arjs-video") || document.querySelector("video[autoplay]");
+      if (arVideo) {
+        arVideo.style.width = "100vw";
+        arVideo.style.height = "100vh";
+        arVideo.style.objectFit = "cover";
+        arVideo.style.position = "fixed";
+        arVideo.style.top = "0";
+        arVideo.style.left = "0";
+      }
+    }, 500);
   });
 
   cartes.forEach(carte => {
@@ -142,7 +187,7 @@
     const marker = document.getElementById(carte.markerId);
 
     marker.addEventListener("markerFound", () => {
-      log("Marqueur detecte ! " + carte.markerId);
+      log("Marqueur détecté : " + carte.markerId);
       markerVisible = true;
       video.play().catch(() => {});
       sons.forEach(s => { s.currentTime = 0; s.play().catch(() => {}); });
@@ -150,7 +195,7 @@
     });
 
     marker.addEventListener("markerLost", () => {
-      log("Pret — montre un marqueur");
+      log("Prêt — montre un marqueur");
       markerVisible = false;
       stopKeepAlive();
       video.pause(); video.currentTime = 0;
